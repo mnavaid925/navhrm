@@ -1,5 +1,6 @@
 from django.db import models
 from apps.core.models import TenantAwareModel, TimeStampedModel
+from apps.core.validators import image_extension_validator, validate_logo_size
 
 
 class Company(TenantAwareModel, TimeStampedModel):
@@ -7,7 +8,10 @@ class Company(TenantAwareModel, TimeStampedModel):
     legal_name = models.CharField(max_length=255, blank=True)
     registration_number = models.CharField(max_length=100, blank=True)
     tax_id = models.CharField(max_length=100, blank=True)
-    logo = models.ImageField(upload_to='companies/logos/', blank=True, null=True)
+    logo = models.ImageField(
+        upload_to='companies/logos/', blank=True, null=True,
+        validators=[image_extension_validator, validate_logo_size],
+    )
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
     website = models.URLField(blank=True)
