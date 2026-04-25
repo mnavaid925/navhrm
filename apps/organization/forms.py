@@ -45,8 +45,23 @@ class DepartmentForm(forms.ModelForm):
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tenant:
-            self.fields['parent'].queryset = Department.all_objects.filter(tenant=tenant)
+            parent_qs = Department.all_objects.filter(tenant=tenant)
+            if self.instance.pk:
+                parent_qs = parent_qs.exclude(pk=self.instance.pk)
+            self.fields['parent'].queryset = parent_qs
             self.fields['company'].queryset = Company.all_objects.filter(tenant=tenant)
+
+    def clean_parent(self):
+        parent = self.cleaned_data.get('parent')
+        if parent and self.instance.pk:
+            if parent.pk == self.instance.pk:
+                raise forms.ValidationError("A department cannot be its own parent.")
+            ancestor = parent
+            while ancestor is not None:
+                if ancestor.pk == self.instance.pk:
+                    raise forms.ValidationError("Circular hierarchy: this parent is already a descendant of the current department.")
+                ancestor = ancestor.parent
+        return parent
 
 
 class DesignationForm(forms.ModelForm):
@@ -72,13 +87,14 @@ class DesignationForm(forms.ModelForm):
 class CostCenterForm(forms.ModelForm):
     class Meta:
         model = CostCenter
-        fields = ['name', 'code', 'description', 'department', 'budget', 'is_active']
+        fields = ['name', 'code', 'description', 'department', 'budget', 'spent', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'code': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'budget': forms.NumberInput(attrs={'class': 'form-control'}),
+            'spent': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, tenant=None, **kwargs):
