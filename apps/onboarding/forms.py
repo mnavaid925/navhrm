@@ -92,7 +92,7 @@ class OrientationSessionForm(forms.ModelForm):
         model = OrientationSession
         fields = [
             'title', 'session_type', 'description', 'facilitator',
-            'date', 'start_time', 'end_time', 'location'
+            'date', 'start_time', 'end_time', 'location', 'employees'
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -103,12 +103,22 @@ class OrientationSessionForm(forms.ModelForm):
             'start_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'end_time': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
             'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'employees': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 5}),
         }
 
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
         if tenant:
             self.fields['facilitator'].queryset = User.objects.filter(tenant=tenant)
+            self.fields['employees'].queryset = Employee.all_objects.filter(tenant=tenant)
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_time')
+        end = cleaned.get('end_time')
+        if start and end and end <= start:
+            raise forms.ValidationError("End time must be after start time.")
+        return cleaned
 
 
 class WelcomeKitForm(forms.ModelForm):
