@@ -1,4 +1,5 @@
 from django import forms
+from django.core.validators import MaxValueValidator, MinValueValidator
 from .models import (
     Resignation, ExitInterview, ClearanceProcess,
     FnFSettlement, ExperienceLetter
@@ -22,6 +23,14 @@ class ResignationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if tenant:
             self.fields['employee'].queryset = Employee.all_objects.filter(tenant=tenant)
+
+    def clean(self):
+        cleaned = super().clean()
+        res_date = cleaned.get('resignation_date')
+        lwd = cleaned.get('last_working_day')
+        if res_date and lwd and lwd < res_date:
+            self.add_error('last_working_day', 'Last working day must be on or after the resignation date.')
+        return cleaned
 
 
 class ExitInterviewForm(forms.ModelForm):
@@ -66,6 +75,12 @@ class ExitInterviewFeedbackForm(forms.ModelForm):
             ),
             'additional_feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # D-04: enforce 1–5 range server-side; HTML min/max are advisory only.
+        self.fields['overall_experience'].validators = [MinValueValidator(1), MaxValueValidator(5)]
+        self.fields['overall_experience'].help_text = 'Rating between 1 (poor) and 5 (excellent).'
 
 
 class ClearanceProcessForm(forms.ModelForm):
