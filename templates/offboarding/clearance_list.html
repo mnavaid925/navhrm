@@ -62,6 +62,14 @@
                                     <a href="{% url 'offboarding:clearance_detail' clearance.pk %}" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" title="View Details">
                                         <i class="ri-eye-line"></i>
                                     </a>
+                                    {% if clearance.status != 'completed' %}
+                                    <form method="post" action="{% url 'offboarding:clearance_delete' clearance.pk %}" class="d-inline" onsubmit="return confirm('Delete clearance for {{ clearance.employee }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" title="Delete">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
