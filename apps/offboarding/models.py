@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from apps.core.models import TenantAwareModel, TimeStampedModel
 
@@ -45,7 +46,11 @@ class ExitInterview(TenantAwareModel, TimeStampedModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
 
     # Feedback fields
-    overall_experience = models.PositiveIntegerField(null=True, blank=True, help_text='Rating 1-5')
+    overall_experience = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text='Rating 1-5',
+    )
     reason_for_leaving = models.TextField(blank=True)
     what_liked = models.TextField(blank=True, verbose_name='What did you like most?')
     what_disliked = models.TextField(blank=True, verbose_name='What could be improved?')
