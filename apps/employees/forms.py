@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 from .models import Employee, EmergencyContact, EmployeeDocument, EmployeeLifecycleEvent
 from apps.organization.models import Department, Designation
 
@@ -49,11 +50,50 @@ class EmployeeForm(forms.ModelForm):
 
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self._tenant = tenant
         if tenant:
-            self.fields['department'].queryset = Department.all_objects.filter(tenant=tenant)
-            self.fields['designation'].queryset = Designation.all_objects.filter(tenant=tenant)
-            self.fields['reporting_manager'].queryset = Employee.all_objects.filter(tenant=tenant, status='active')
+            current_dept_id = getattr(self.instance, 'department_id', None)
+            current_desig_id = getattr(self.instance, 'designation_id', None)
+            # D-12: hide inactive options but preserve current selection when editing.
+            self.fields['department'].queryset = Department.all_objects.filter(
+                tenant=tenant
+            ).filter(Q(is_active=True) | Q(pk=current_dept_id))
+            self.fields['designation'].queryset = Designation.all_objects.filter(
+                tenant=tenant
+            ).filter(Q(is_active=True) | Q(pk=current_desig_id))
+            # D-02: cannot manage yourself; only active managers eligible.
+            mgr_qs = Employee.all_objects.filter(tenant=tenant, status='active')
+            if self.instance.pk:
+                mgr_qs = mgr_qs.exclude(pk=self.instance.pk)
+            self.fields['reporting_manager'].queryset = mgr_qs
             self.fields['reporting_manager'].required = False
+
+    def clean_employee_id(self):
+        # D-01: tenant is not a form field, so Django's default validate_unique
+        # excludes it — duplicates would otherwise hit the DB as a 500.
+        eid = self.cleaned_data.get('employee_id')
+        if eid and self._tenant:
+            qs = Employee.all_objects.filter(tenant=self._tenant, employee_id=eid)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError('An employee with this ID already exists in this tenant.')
+        return eid
+
+    def clean(self):
+        # D-02: prevent reporting-manager cycles (A → B → A).
+        cleaned = super().clean()
+        manager = cleaned.get('reporting_manager')
+        if manager and self.instance.pk:
+            seen = {self.instance.pk}
+            current = manager
+            while current is not None:
+                if current.pk in seen:
+                    self.add_error('reporting_manager', 'Reporting manager assignment creates a cycle.')
+                    break
+                seen.add(current.pk)
+                current = current.reporting_manager
+        return cleaned
 
 
 class EmergencyContactForm(forms.ModelForm):
