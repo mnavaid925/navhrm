@@ -57,6 +57,14 @@
                                             <i class="ri-feedback-line"></i>
                                         </a>
                                         {% endif %}
+                                        {% if interview.status != 'completed' %}
+                                        <form method="post" action="{% url 'offboarding:exitinterview_delete' interview.pk %}" class="d-inline" onsubmit="return confirm('Delete exit interview for {{ interview.employee }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" title="Delete">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
