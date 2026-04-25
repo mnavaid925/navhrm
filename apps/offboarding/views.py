@@ -435,7 +435,7 @@ class ExperienceLetterDetailView(LoginRequiredMixin, DetailView):
 # Delete Views (CRUD completeness per CLAUDE.md)
 # ---------------------------------------------------------------------------
 
-class ResignationDeleteView(LoginRequiredMixin, View):
+class ResignationDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         resignation = get_object_or_404(
             Resignation.all_objects, pk=pk, tenant=request.tenant
@@ -449,7 +449,7 @@ class ResignationDeleteView(LoginRequiredMixin, View):
         return redirect('offboarding:resignation_list')
 
 
-class ExitInterviewDeleteView(LoginRequiredMixin, View):
+class ExitInterviewDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         interview = get_object_or_404(
             ExitInterview.all_objects, pk=pk, tenant=request.tenant
@@ -463,7 +463,7 @@ class ExitInterviewDeleteView(LoginRequiredMixin, View):
         return redirect('offboarding:exitinterview_list')
 
 
-class ClearanceDeleteView(LoginRequiredMixin, View):
+class ClearanceDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         clearance = get_object_or_404(
             ClearanceProcess.all_objects, pk=pk, tenant=request.tenant
@@ -477,7 +477,7 @@ class ClearanceDeleteView(LoginRequiredMixin, View):
         return redirect('offboarding:clearance_list')
 
 
-class FnFDeleteView(LoginRequiredMixin, View):
+class FnFDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         settlement = get_object_or_404(
             FnFSettlement.all_objects, pk=pk, tenant=request.tenant
@@ -491,7 +491,7 @@ class FnFDeleteView(LoginRequiredMixin, View):
         return redirect('offboarding:fnf_list')
 
 
-class ExperienceLetterDeleteView(LoginRequiredMixin, View):
+class ExperienceLetterDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         letter = get_object_or_404(
             ExperienceLetter.all_objects, pk=pk, tenant=request.tenant
