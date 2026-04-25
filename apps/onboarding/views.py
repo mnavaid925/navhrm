@@ -16,6 +16,7 @@ from .forms import (
     OnboardingProcessForm, OnboardingTaskForm, OnboardingTemplateForm,
     AssetAllocationForm, OrientationSessionForm, WelcomeKitForm
 )
+from apps.core.mixins import HRRoleRequiredMixin
 from apps.employees.models import Employee
 
 
@@ -30,8 +31,15 @@ class OnboardingListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        from django.db.models import Count
         qs = OnboardingProcess.all_objects.filter(tenant=self.request.tenant).select_related(
             'employee', 'template'
+        ).annotate(
+            # D-10: pre-compute task totals so progress_percentage doesn't N+1.
+            total_tasks_count=Count('tasks', distinct=True),
+            completed_tasks_count=Count(
+                'tasks', filter=Q(tasks__status='completed'), distinct=True,
+            ),
         )
         status = self.request.GET.get('status', '')
         if status:
@@ -406,7 +414,7 @@ class WelcomeKitUpdateView(LoginRequiredMixin, View):
 # Delete Views (CRUD completeness per CLAUDE.md)
 # ---------------------------------------------------------------------------
 
-class OnboardingDeleteView(LoginRequiredMixin, View):
+class OnboardingDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         process = get_object_or_404(
             OnboardingProcess.all_objects, pk=pk, tenant=request.tenant
@@ -417,7 +425,7 @@ class OnboardingDeleteView(LoginRequiredMixin, View):
         return redirect('onboarding:list')
 
 
-class TemplateDeleteView(LoginRequiredMixin, View):
+class TemplateDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         template = get_object_or_404(
             OnboardingTemplate.all_objects, pk=pk, tenant=request.tenant
@@ -428,7 +436,7 @@ class TemplateDeleteView(LoginRequiredMixin, View):
         return redirect('onboarding:template_list')
 
 
-class AssetDeleteView(LoginRequiredMixin, View):
+class AssetDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         asset = get_object_or_404(
             AssetAllocation.all_objects, pk=pk, tenant=request.tenant
@@ -439,7 +447,7 @@ class AssetDeleteView(LoginRequiredMixin, View):
         return redirect('onboarding:asset_list')
 
 
-class OrientationDeleteView(LoginRequiredMixin, View):
+class OrientationDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         session = get_object_or_404(
             OrientationSession.all_objects, pk=pk, tenant=request.tenant
@@ -450,7 +458,7 @@ class OrientationDeleteView(LoginRequiredMixin, View):
         return redirect('onboarding:orientation_list')
 
 
-class WelcomeKitDeleteView(LoginRequiredMixin, View):
+class WelcomeKitDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         kit = get_object_or_404(WelcomeKit.all_objects, pk=pk, tenant=request.tenant)
         name = kit.name
