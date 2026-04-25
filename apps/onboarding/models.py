@@ -58,10 +58,16 @@ class OnboardingProcess(TenantAwareModel, TimeStampedModel):
 
     @property
     def progress_percentage(self):
-        total = self.tasks.count()
+        # D-10: prefer annotated counts when the queryset provides them, so list
+        # views don't issue 2 extra COUNT queries per row.
+        total = getattr(self, 'total_tasks_count', None)
+        if total is None:
+            total = self.tasks.count()
         if total == 0:
             return 0
-        completed = self.tasks.filter(status='completed').count()
+        completed = getattr(self, 'completed_tasks_count', None)
+        if completed is None:
+            completed = self.tasks.filter(status='completed').count()
         return round((completed / total) * 100)
 
 
