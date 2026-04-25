@@ -7,6 +7,7 @@ from django.db.models import Q
 
 from .models import Employee, EmergencyContact, EmployeeDocument, EmployeeLifecycleEvent
 from .forms import EmployeeForm, EmergencyContactForm, EmployeeDocumentForm, LifecycleEventForm
+from apps.core.mixins import HRRoleRequiredMixin
 from apps.organization.models import Department
 
 
@@ -179,7 +180,7 @@ class EmployeeUpdateView(LoginRequiredMixin, View):
 # Employee Delete (POST only)
 # ---------------------------------------------------------------------------
 
-class EmployeeDeleteView(LoginRequiredMixin, View):
+class EmployeeDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         employee = get_object_or_404(Employee, pk=pk, tenant=request.tenant)
         name = employee.full_name
@@ -240,7 +241,7 @@ class DocumentUploadView(LoginRequiredMixin, View):
 # Document Delete (POST only)
 # ---------------------------------------------------------------------------
 
-class DocumentDeleteView(LoginRequiredMixin, View):
+class DocumentDeleteView(HRRoleRequiredMixin, LoginRequiredMixin, View):
     def post(self, request, pk):
         document = get_object_or_404(EmployeeDocument, pk=pk, tenant=request.tenant)
         employee_pk = document.employee_id
