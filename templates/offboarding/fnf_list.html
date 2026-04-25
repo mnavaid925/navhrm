@@ -89,6 +89,14 @@
                                     <a href="{% url 'offboarding:fnf_detail' settlement.pk %}" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" title="View Details">
                                         <i class="ri-eye-line"></i>
                                     </a>
+                                    {% if settlement.status == 'draft' or settlement.status == 'pending_approval' %}
+                                    <form method="post" action="{% url 'offboarding:fnf_delete' settlement.pk %}" class="d-inline" onsubmit="return confirm('Delete F&amp;F settlement for {{ settlement.employee }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" title="Delete">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
