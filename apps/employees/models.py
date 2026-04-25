@@ -1,5 +1,11 @@
 from django.db import models
 from apps.core.models import TenantAwareModel, TimeStampedModel
+from apps.core.validators import (
+    document_extension_validator,
+    image_extension_validator,
+    validate_avatar_size,
+    validate_document_size,
+)
 
 
 class Employee(TenantAwareModel, TimeStampedModel):
@@ -51,7 +57,10 @@ class Employee(TenantAwareModel, TimeStampedModel):
     marital_status = models.CharField(max_length=10, choices=MARITAL_CHOICES, blank=True)
     blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, blank=True)
     nationality = models.CharField(max_length=100, blank=True)
-    avatar = models.ImageField(upload_to='employees/avatars/', blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to='employees/avatars/', blank=True, null=True,
+        validators=[image_extension_validator, validate_avatar_size],
+    )
 
     # Address
     address_line1 = models.CharField(max_length=255, blank=True)
@@ -90,9 +99,16 @@ class Employee(TenantAwareModel, TimeStampedModel):
 
     class Meta:
         ordering = ['first_name', 'last_name']
+        unique_together = [('tenant', 'employee_id')]
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.employee_id})"
+
+    def delete(self, *args, **kwargs):
+        # D-09: clear FileField storage on delete to avoid orphaning media files.
+        if self.avatar:
+            self.avatar.delete(save=False)
+        return super().delete(*args, **kwargs)
 
     @property
     def full_name(self):
@@ -142,7 +158,10 @@ class EmployeeDocument(TenantAwareModel, TimeStampedModel):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='documents')
     name = models.CharField(max_length=255)
     document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES)
-    file = models.FileField(upload_to='employees/documents/')
+    file = models.FileField(
+        upload_to='employees/documents/',
+        validators=[document_extension_validator, validate_document_size],
+    )
     document_number = models.CharField(max_length=100, blank=True)
     issue_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
@@ -154,6 +173,12 @@ class EmployeeDocument(TenantAwareModel, TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} - {self.employee}"
+
+    def delete(self, *args, **kwargs):
+        # D-09: remove the underlying file when the row is deleted (incl. CASCADE).
+        if self.file:
+            self.file.delete(save=False)
+        return super().delete(*args, **kwargs)
 
 
 class EmployeeLifecycleEvent(TenantAwareModel, TimeStampedModel):
