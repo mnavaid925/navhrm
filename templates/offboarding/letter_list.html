@@ -56,6 +56,14 @@
                                     <a href="{% url 'offboarding:letter_detail' letter.pk %}" class="btn btn-sm btn-soft-primary" data-bs-toggle="tooltip" title="View Letter">
                                         <i class="ri-eye-line"></i>
                                     </a>
+                                    {% if not letter.is_issued %}
+                                    <form method="post" action="{% url 'offboarding:letter_delete' letter.pk %}" class="d-inline" onsubmit="return confirm('Delete letter for {{ letter.employee }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-soft-danger" data-bs-toggle="tooltip" title="Delete">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% empty %}
